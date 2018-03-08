@@ -113,13 +113,13 @@ export default {
       //   }));
       console.log('cash', this.total)
 
-      // axios.post('/api/calcNetworth', data)
-      // .then(function (response) {
-      //   console.log('response received from server' ,response);
-      // })
-      // .catch(function (error) {
-      //   console.log('error posting to server', error);
-      // });
+      axios.post('http://localhost:3000/calculateNetworth', data)
+      .then(function (response) {
+        console.log('response received from server' ,response);
+      })
+      .catch(function (error) {
+        console.log('error posting to server', error);
+      });
       
     }
   },
