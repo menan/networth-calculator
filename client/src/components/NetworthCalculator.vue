@@ -17,14 +17,14 @@
     <div class="value">{{formattedNetworth}}</div>
   </div>
   <div v-for="key in Object.keys(data)" :key="key">
-    <h3>{{titlize(key)}}</h3>
+    <h3>{{titlize(key)}} {{currentCurrencyDisplay}}</h3>
     <div v-for="sectionKey in Object.keys(data[key])" :key="sectionKey">
       <div :class="{'fields': true,'section': true, 'negative': key === 'liabilities'}">
-        <h4>{{titlize(sectionKey)}}</h4>
+        <h4>{{titlize(sectionKey)}} {{currentCurrencyDisplay}}</h4>
         <div class="value" v-if="total[sectionKey]">{{formatted(total[sectionKey])}}</div>
       </div>
       <div v-for="(field, index) in data[key][sectionKey]" :key="index" class="fields">
-        <label>{{field.label}}</label>
+        <label>{{field.label}} {{currentCurrencyDisplay}}</label>
         <input class="value" v-model="field.value" @blur="format(field)" :disabled="posting" @focus="unformat(field)" @change="inputChanged"/>
       </div>
         <button class="value" @click="data[key][sectionKey].push({label: '', value: ''})">Add Field</button>
@@ -51,10 +51,15 @@ export default {
   },
   watch: {
     currentCurrency: function (newCurrency, oldCurrency) {
+
+      newCurrency === 'EUR' ? numbro.language('fr-FR') : numbro.language('en-US')
       this.getExchangeRate(newCurrency, oldCurrency)
     }
   },
   computed: {
+    currentCurrencyDisplay () {
+      return this.currentCurrency !== 'CAD' ? '(' + this.currentCurrency + ')' : ''
+    },
     formattedNetworth () {
       return numbro(this.totalNetworth).formatCurrency('0,0.00')
     },
@@ -96,9 +101,6 @@ export default {
       return section.filter(a => a.length !== null).reduce((a, b) => ({
           value: this.unformatted(a.value) + this.unformatted(b.value)
         })).value
-    },
-    currencyChanged () {
-      console.log('currency changed', this.currentCurrency);
     },
     calculateNetworth () {
       this.posting = true
@@ -185,7 +187,7 @@ export default {
         .value
           color red
     label 
-      flex-basis 60%
+      flex-basis 70%
       text-align left
       margin-right 5px
     .value
