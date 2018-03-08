@@ -1,9 +1,12 @@
 <template>
-<div class="networth-calculator">
+<div v-if="posting" class="loading-content">
+  Crunching numbers...
+</div>
+<div class="networth-calculator" v-else>
   <div class="fields currency-select">
     <label>Choose your currency</label>
-    <select v-model="currentCurrency" @change="currencyChanged">
-      <option v-for="currency in currencies" :key="currency">{{currency}}</option>
+    <select v-model="currentCurrency">
+      <option v-for="value in currencies" :key="value">{{value}}</option>
     </select>
   </div>
   <div class="fields networth">
@@ -19,7 +22,7 @@
       </div>
       <div v-for="(field, index) in data[key][sectionKey]" :key="index" class="fields">
         <label>{{field.label}}</label>
-        <input class="value" v-model="field.value" @blur="format(field)" @focus="unformat(field)" @change="inputChanged"/>
+        <input class="value" v-model="field.value" @blur="format(field)" :disabled="posting" @focus="unformat(field)" @change="inputChanged"/>
       </div>
         <button class="value" @click="data[key][sectionKey].push({label: '', value: ''})">Add Field</button>
     </div>
@@ -37,15 +40,23 @@ export default {
       data,
       sections: ['cashAndInvestments', 'longTermAssets', 'shortTermLiabilities', 'longTermDebt'],
       total: {},
-      currencies: ['CAD', 'USD', 'EUR', 'INR', 'BTC', 'ETH'],
-      currentCurrency: 'CAD'
+      currencies: ['CAD', 'USD', 'EUR', 'AUD', 'BTC', 'ETH'],
+      currentCurrency: 'CAD',
+      posting: false,
+      fetchingCurrency: false,
+    }
+  },
+  watch: {
+    currentCurrency: function (newCurrency, oldCurrency) {
+      console.log('old currency', oldCurrency, 'new currency', newCurrency);
+      this.getExchangeRate(newCurrency, oldCurrency)
     }
   },
   computed: {
-    formattedNetworth() {
+    formattedNetworth () {
       return numbro(this.totalNetworth).formatCurrency('0,0.00')
     },
-    totalNetworth() {
+    totalNetworth () {
       return this.getTotal('cashAndInvestments') + this.getTotal('longTermAssets') - this.getTotal('longTermDebt') - this.getTotal('shortTermLiabilities') 
     }
   },
@@ -61,7 +72,7 @@ export default {
         return match.toUpperCase()
       })
     },
-    getTotal(field) {
+    getTotal (field) {
       return this.total[field] ? this.total[field] : 0
     },
     format (field) {
@@ -74,12 +85,12 @@ export default {
       this.calculateNetworth()
     },
     unformatted (value) {
-      return value ? numbro.unformat(value) : 0
+      return value ? numbro.unformat(value) : ''
     },
     formatted (value) {
       return value ? numbro(value).formatCurrency('0,0.00') : null
     },
-    calculateTotal(section) {
+    calculateTotal (section) {
       return section.filter(a => a.length !== null).reduce((a, b) => ({
           value: this.unformatted(a.value) + this.unformatted(b.value)
         })).value
@@ -88,39 +99,42 @@ export default {
       console.log('currency changed', this.currentCurrency);
     },
     calculateNetworth () {
-      // console.log('calculating from ', JSON.stringify(data))
-
-      // const cash = data.assets.cashAndInvestments.reduce((a, b) => {
-      //     console.log('reducing: ', a, b);
-      //     sum: numbro.unformat(a.value) + numbro.unformat(b.value)
-      //   });
-
-      // this.total = this.sections.map(section => {
-      //   section: {
-      //     this.calculateTotal(data.assets[section])
-      //   }
-      // })
-      this.total = {
-        cashAndInvestments: this.calculateTotal(data.assets.cashAndInvestments),
-        longTermAssets: this.calculateTotal(data.assets.longTermAssets),
-        shortTermLiabilities: this.calculateTotal(data.liabilities.shortTermLiabilities),
-        longTermDebt: this.calculateTotal(data.liabilities.longTermDebt)
-      }
-
-
-      // const total = data.assets.cashAndInvestments.filter(a => a.length !== null).reduce((a, b) => ({
-      //     cashAndInvestments: this.unformatted(a.value) + this.unformatted(b.value)
-      //   }));
-      console.log('cash', this.total)
-
-      axios.post('http://localhost:3000/calculateNetworth', data)
-      .then(function (response) {
-        console.log('response received from server' ,response);
+      this.posting = true
+      axios.post('http://localhost:3000/calculateNetworth', { data: data })
+      .then((response) => {
+        this.total = response.data
       })
-      .catch(function (error) {
-        console.log('error posting to server', error);
-      });
-      
+      .catch((error) => {
+        console.error('error posting to server', error)
+      })
+      .finally (() => {
+        this.posting = false
+      })
+    },
+    getExchangeRate (newCurrency, oldCurrency) {
+      this.fetchingCurrency = true
+      axios.post('https://api.cryptonator.com/api/ticker/' + newCurrency + '-' + oldCurrency)
+      .then((response) => {
+        this.calculateExhangeAmount(response.data.ticker.price)
+      })
+      .catch((error) => {
+        console.error('error posting to server', error)
+      })
+      .finally (() => {
+        this.fetchingCurrency = false
+      })
+    },
+    calculateExhangeAmount (rate) {
+      console.log('calculating rates: ', this.data.assets.cashAndInvestments)
+
+
+      const sectionTotal = this.data.assets.cashAndInvestments.filter(value => value.length !== null).map(object => {
+        console.log('hello value', this.unformatted(object.value), rate)
+        this.unformatted(object.value) * rate
+      })
+
+      console.log('section total', sectionTotal)
+
     }
   },
   mounted () {
@@ -129,47 +143,54 @@ export default {
 }
 </script>
 <style lang="stylus">
-  .networth-calculator
-    width 450px
-    margin auto
-    padding 50px 0
+.loading-content
+  display flex
+  justify-content center
+  margin-top 250px
 
-    .fields
-      display flex
-      margin-bottom 2px
-      justify-content space-between
-      align-items center
-      &.networth
-        font-weight bold
-        .label
-          font-size 20px
-        .value
-          font-size 25px
+.networth-calculator
+  width 450px
+  margin auto
+  padding 50px 0
 
-      &.currency-select
-        margin-bottom 20px
-
-      h4, h3
-        margin-bottom 10px
-      &.section
-        .value
-          font-weight bold
-          color green
-
-        &.negative
-          .value
-            color red
-      label 
-        flex-basis 60%
-        text-align left
-        margin-right 5px
+  .fields
+    display flex
+    margin-bottom 2px
+    justify-content space-between
+    align-items center
+    &.networth
+      font-weight bold
+      .label
+        font-size 20px
       .value
-        flex-basis 10%
-        text-align right
-        padding 4px
-        outline 0px
-        &:focus
-          border-color #2b6aa9
+        font-size 25px
+
+    &.currency-select
+      margin-bottom 20px
+
+    h4, h3
+      margin-bottom 10px
+    &.section
+      .value
+        font-weight bold
+        color green
+
+      &.negative
+        .value
+          color red
+    label 
+      flex-basis 60%
+      text-align left
+      margin-right 5px
+    .value
+      flex-basis 10%
+      text-align right
+      padding 4px
+      outline 0px
+      &:focus
+        border-color #2b6aa9
+      &:disabled
+        background-color #d3d3d3
 </style>
 
 

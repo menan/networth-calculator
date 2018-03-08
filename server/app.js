@@ -12,7 +12,6 @@ app.use(bodyParser.urlencoded({ extended: true })) // support encoded bodies
 
 app.get('/', (req, res) => res.send('<h3>' + appName + 'API!</h3><h4>Post</h4> To: <pre>/calculateNetworth</pre><br /> With JSON body: <br /><pre>' + JSON.stringify(testData) + '</pre>'))
 app.post('/calculateNetworth', (req, res) => {
-  console.log('request', req.body.data);
   res.setHeader('Content-Type', 'application/json');
   const networthData = calculateNetworth(req.body.data);
   res.send(JSON.stringify(networthData));
@@ -26,13 +25,11 @@ function calculateNetworth (data) {
   const networth = cashAndInvestments + longTermAssets - shortTermLiabilities - longTermDebt
 
   return {
-    data: {
-      cashAndInvestments: cashAndInvestments,
-      longTermAssets: longTermAssets,
-      shortTermLiabilities: shortTermLiabilities,
-      longTermDebt: longTermDebt,
-      networth: networth,
-    }
+    cashAndInvestments: cashAndInvestments,
+    longTermAssets: longTermAssets,
+    shortTermLiabilities: shortTermLiabilities,
+    longTermDebt: longTermDebt,
+    networth: networth,
   }
 }
 //calculates the total for each section
