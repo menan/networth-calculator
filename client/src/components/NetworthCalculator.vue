@@ -141,18 +141,6 @@ export default {
       Object.keys(this.total).forEach((section) => {
         this.total[section] = this.total[section] * rate
       })
-
-
-      // const sectionTotal = this.data.assets.cashAndInvestments.filter(value => value.length !== null).map(object => {
-      //   console.log('hello value', this.unformatted(object.value), rate)
-      //   return {
-      //     label: object.label,
-      //     value: this.unformatted(object.value) * rate,
-      //   }
-      // })
-
-      // console.log('section total', sectionTotal)
-
     }
   },
   mounted () {
