@@ -13,7 +13,7 @@
 ### Request
 
 *POST* to: `http://localhost:3000/calculateNetworth`
-with JSON sample body: `{
+With JSON sample body: `{
   "data": {
     "assets": {
       "cashAndInvestments": [
