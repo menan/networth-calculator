@@ -1,6 +1,135 @@
 # Networth Calculator API
 
+## Run project
+
 - Clone the repo
 - Navigate to the folder
 - Install packages: `npm i`
 - Run the app: `node server`
+
+
+## API Usage
+
+### Request
+
+**POST** to: `/calculateNetworth` with JSON sample body: `{
+  "data": {
+    "assets": {
+      "cashAndInvestments": [
+        {
+          "label": "Chequing",
+          "value": "$2,000.00"
+        },
+        {
+          "label": "Savings for Taxes",
+          "value": "$4,000.00"
+        },
+        {
+          "label": "Rainy Day Fund",
+          "value": "$506.00"
+        },
+        {
+          "label": "Savings for Fun",
+          "value": "$5,000.00"
+        },
+        {
+          "label": "Savings for Travel",
+          "value": "$400.00"
+        },
+        {
+          "label": "Savings for Personal Development",
+          "value": "$200.00"
+        },
+        {
+          "label": "Investment 1",
+          "value": "$5,000.00"
+        },
+        {
+          "label": "Investment 2",
+          "value": "$60,000.00"
+        },
+        {
+          "label": "Investment 3",
+          "value": "$30,000.00"
+        },
+        {
+          "label": "Investment 4",
+          "value": "$50,000.00"
+        },
+        {
+          "label": "Investment 5",
+          "value": "$24,000.00"
+        }
+      ],
+      "longTermAssets": [
+        {
+          "label": "Primary Home",
+          "value": "$455,000.00"
+        },
+        {
+          "label": "Second Home",
+          "value": "$1,564,321.00"
+        },
+        {
+          "label": "Other",
+          "value": null
+        }
+      ]
+    },
+    "liabilities": {
+      "shortTermLiabilities": [
+        {
+          "label": "Credit Card 1",
+          "value": "$4,342.00"
+        },
+        {
+          "label": "Credit Card 2",
+          "value": "$322.00"
+        },
+        {
+          "label": "(others...)",
+          "value": null
+        }
+      ],
+      "longTermDebt": [
+        {
+          "label": "Mortgage 1",
+          "value": "$250,999.00"
+        },
+        {
+          "label": "Mortgage 2",
+          "value": "$632,634.00"
+        },
+        {
+          "label": "Line of Credit",
+          "value": "$10,000.00"
+        },
+        {
+          "label": "Investment Loan",
+          "value": "$10,000.00"
+        },
+        {
+          "label": "Student Loan",
+          "value": null
+        },
+        {
+          "label": "Car Loan",
+          "value": null
+        }
+      ]
+    }
+  }
+}`
+
+### Response
+
+Body: 
+`{
+    "data": {
+        "cashAndInvestments": 181106,
+        "longTermAssets": 2019321,
+        "shortTermLiabilities": 4664,
+        "longTermDebt": 903633,
+        "networth": 1292130
+    }
+}`
