@@ -2,6 +2,9 @@
 <div v-if="posting" class="loading-content">
   Crunching numbers...
 </div>
+<div v-else-if="fetchingCurrency" class="loading-content">
+  Fetching exchange rate for {{currentCurrency}}...
+</div>
 <div class="networth-calculator" v-else>
   <div class="fields currency-select">
     <label>Choose your currency</label>
@@ -40,7 +43,7 @@ export default {
       data,
       sections: ['cashAndInvestments', 'longTermAssets', 'shortTermLiabilities', 'longTermDebt'],
       total: {},
-      currencies: ['CAD', 'USD', 'EUR', 'AUD', 'BTC', 'ETH'],
+      currencies: ['CAD', 'USD', 'EUR', 'AUD', 'BTC', 'ETH', 'LTC'],
       currentCurrency: 'CAD',
       posting: false,
       fetchingCurrency: false,
@@ -48,7 +51,6 @@ export default {
   },
   watch: {
     currentCurrency: function (newCurrency, oldCurrency) {
-      console.log('old currency', oldCurrency, 'new currency', newCurrency);
       this.getExchangeRate(newCurrency, oldCurrency)
     }
   },
@@ -76,7 +78,7 @@ export default {
       return this.total[field] ? this.total[field] : 0
     },
     format (field) {
-      field.value = field.value && field.value !== null ? numbro(field.value).formatCurrency('0,0.00') : null
+      field.value = this.formatted(field.value)
     },
     unformat (field) {
       field.value = this.unformatted(field.value)
@@ -88,7 +90,7 @@ export default {
       return value ? numbro.unformat(value) : ''
     },
     formatted (value) {
-      return value ? numbro(value).formatCurrency('0,0.00') : null
+      return value && value !== null ? numbro(value).formatCurrency('0,0.00') : null
     },
     calculateTotal (section) {
       return section.filter(a => a.length !== null).reduce((a, b) => ({
@@ -113,7 +115,7 @@ export default {
     },
     getExchangeRate (newCurrency, oldCurrency) {
       this.fetchingCurrency = true
-      axios.post('https://api.cryptonator.com/api/ticker/' + newCurrency + '-' + oldCurrency)
+      axios.post('https://api.cryptonator.com/api/ticker/' + oldCurrency + '-' + newCurrency)
       .then((response) => {
         this.calculateExhangeAmount(response.data.ticker.price)
       })
@@ -125,15 +127,31 @@ export default {
       })
     },
     calculateExhangeAmount (rate) {
-      console.log('calculating rates: ', this.data.assets.cashAndInvestments)
-
-
-      const sectionTotal = this.data.assets.cashAndInvestments.filter(value => value.length !== null).map(object => {
-        console.log('hello value', this.unformatted(object.value), rate)
-        this.unformatted(object.value) * rate
+      Object.keys(this.data).forEach((section) => {
+        Object.keys(this.data[section]).forEach((subSection) => {
+          this.data[section][subSection] = this.data[section][subSection].filter(value => value.length !== null).map(object => {
+            return {
+              label: object.label,
+              value: this.formatted(this.unformatted(object.value) * rate),
+            }
+          })
+        })
       })
 
-      console.log('section total', sectionTotal)
+      Object.keys(this.total).forEach((section) => {
+        this.total[section] = this.total[section] * rate
+      })
+
+
+      // const sectionTotal = this.data.assets.cashAndInvestments.filter(value => value.length !== null).map(object => {
+      //   console.log('hello value', this.unformatted(object.value), rate)
+      //   return {
+      //     label: object.label,
+      //     value: this.unformatted(object.value) * rate,
+      //   }
+      // })
+
+      // console.log('section total', sectionTotal)
 
     }
   },
