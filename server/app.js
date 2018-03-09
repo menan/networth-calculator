@@ -34,7 +34,7 @@ function calculateNetworth (data) {
 }
 //calculates the total for each section
 function calculateTotal(section) {
-  return section.length && section.filter(a => a && a.length !== null).reduce((a, b) => ({
+  return section.length && section.filter(a => a && a.length !== null && !a.error).reduce((a, b) => ({
     value: unformatted(a.value) + unformatted(b.value)
   })).value
 }

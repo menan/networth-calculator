@@ -25,9 +25,9 @@
       </div>
       <div v-for="(field, index) in data[key][sectionKey]" :key="index" class="fields">
         <label>{{field.label}} {{currentCurrencyDisplay}}</label>
-        <input class="value" v-model="field.value" @blur="format(field)" :disabled="posting" @focus="unformat(field)" @change="inputChanged"/>
+        <input :class="{'value': true, 'error': field.error || false}" v-model="field.value" @blur="format(field)" :disabled="posting" @focus="unformat(field)" @change="inputChanged"/>
       </div>
-        <button class="value" @click="data[key][sectionKey].push({label: '', value: ''})">Add Field</button>
+        <button class="value" @click="data[key][sectionKey].push({label: '', value: ''})">Add {{titlize(sectionKey)}}</button>
     </div>
   </div>
 </div>
@@ -36,12 +36,12 @@
 import data from '../../config/data.json'
 import numbro from 'numbro'
 import axios from 'axios'
+import {calculateNetworth, getExchangeRate} from '../services'
 
 export default {
   data () {
     return {
       data,
-      sections: ['cashAndInvestments', 'longTermAssets', 'shortTermLiabilities', 'longTermDebt'],
       total: {},
       currencies: ['CAD', 'USD', 'EUR', 'AUD', 'BTC', 'ETH', 'LTC'],
       currentCurrency: 'CAD',
@@ -51,8 +51,6 @@ export default {
   },
   watch: {
     currentCurrency: function (newCurrency, oldCurrency) {
-
-      newCurrency === 'EUR' ? numbro.language('fr-FR') : numbro.language('en-US')
       this.getExchangeRate(newCurrency, oldCurrency)
     }
   },
@@ -83,13 +81,21 @@ export default {
       return this.total[field] ? this.total[field] : 0
     },
     format (field) {
-      field.value = this.formatted(field.value)
+      try {
+        field.error = field.value < 0
+        field.value = this.formatted(field.value)
+      }
+      catch (e) {
+        field.error = true
+        console.log('error formatting', e);
+      }
+      
     },
     unformat (field) {
       field.value = this.unformatted(field.value)
     },
     inputChanged () {
-      this.calculateNetworth()
+      this.callCalculateNetworth()
     },
     unformatted (value) {
       return value ? numbro.unformat(value) : ''
@@ -99,32 +105,30 @@ export default {
     },
     calculateTotal (section) {
       return section.filter(a => a.length !== null).reduce((a, b) => ({
-          value: this.unformatted(a.value) + this.unformatted(b.value)
+          value: parseInt(this.unformatted(a.value) + this.unformatted(b.value))
         })).value
     },
-    calculateNetworth () {
+    callCalculateNetworth () {
       this.posting = true
-      axios.post('http://localhost:3000/calculateNetworth', { data: data })
+      calculateNetworth(data)
       .then((response) => {
         this.total = response.data
+        this.posting = false
       })
       .catch((error) => {
         console.error('error posting to server', error)
-      })
-      .finally (() => {
         this.posting = false
       })
     },
     getExchangeRate (newCurrency, oldCurrency) {
       this.fetchingCurrency = true
-      axios.post('https://api.cryptonator.com/api/ticker/' + oldCurrency + '-' + newCurrency)
+      getExchangeRate(oldCurrency, newCurrency)
       .then((response) => {
         this.calculateExhangeAmount(response.data.ticker.price)
+        this.fetchingCurrency = false
       })
       .catch((error) => {
         console.error('error posting to server', error)
-      })
-      .finally (() => {
         this.fetchingCurrency = false
       })
     },
@@ -146,7 +150,7 @@ export default {
     }
   },
   mounted () {
-    this.calculateNetworth()
+    this.callCalculateNetworth()
   }
 }
 </script>
@@ -195,6 +199,8 @@ export default {
       text-align right
       padding 4px
       outline 0px
+      &.error
+        border-color red
       &:focus
         border-color #2b6aa9
       &:disabled
